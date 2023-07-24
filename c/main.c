@@ -1,21 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <linux/input.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define CLAMP(x,min,max) (MIN(max, MAX(min, amount)))
-
-#define BITS_TO_LONGS(x) (((x) + 8 * sizeof (unsigned long) - 1) / (8 * sizeof (unsigned long)))
-#define FEATURES_LEN BITS_TO_LONGS(FF_CNT)
-
-#define FF_DIRECTION_LEFT 0x4000
-#define FF_DIRECTION_RIGHT 0xC000
+#include "main.h"
 
 char* features_name[] = {
     "FF_RUMBLE", "FF_PERIODIC", "FF_CONSTANT", "FF_SPRING", "FF_FRICTION",
@@ -29,12 +12,6 @@ int upload_effect(int fd, struct ff_effect* effect)
     return ioctl(fd, EVIOCSFF, effect);
 }
 
-/**
- * @param fd: handler 
- * @param code: FF_{CODE} or effect->id
- * @param value: effect strength if used with FF_{CODE} or repetitions if used with effect->id
- * @return int 
- */
 int play_effect(int fd, unsigned short code, signed int value) 
 {
     // TODO: remove time?
@@ -74,18 +51,15 @@ void get_capabilities(int fd)
     }
 }
 
-/** 
- * level between -32768 and 32767
- * length in ms
-**/
 struct ff_effect* create_effect(signed short level, unsigned short length) 
 {
-    struct ff_effect* effect = calloc(1, sizeof(struct ff_effect));
+    struct ff_effect* effect = (struct ff_effect*) calloc(1, sizeof(struct ff_effect));
     if (effect == NULL)
         return NULL;
     
     struct ff_constant_effect constant;
     constant.level = level;
+
     // struct ff_envelope envelope;
     // envelope.attack_length = 0;
     // envelope.attack_level = 0;
@@ -111,8 +85,13 @@ struct ff_effect* create_effect(signed short level, unsigned short length)
     return effect;
 }
 
+int open_wheel() 
+{
+    return open("/dev/input/event6", O_RDWR);
+}
+
 int main()  {
-    int fd = open("/dev/input/event6", O_RDWR);
+    int fd = open_wheel();
     printf("%d\n", fd);
 
     get_capabilities(fd);
