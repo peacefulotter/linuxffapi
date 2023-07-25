@@ -1,3 +1,5 @@
+#include <dirent.h>
+#include <string.h>
 #include "main.h"
 
 char* features_name[] = {
@@ -12,7 +14,7 @@ int upload_effect(int fd, struct ff_effect* effect)
     return ioctl(fd, EVIOCSFF, effect);
 }
 
-int play_effect(int fd, unsigned short code, signed int value) 
+size_t play_effect(int fd, unsigned short code, signed int value) 
 {
     // TODO: remove time?
     struct timeval time;
@@ -33,7 +35,7 @@ int remove_effect(int fd, struct ff_effect* effect)
     return ioctl(fd, EVIOCRMFF, effect->id);
 }
 
-int autocenter(int fd, double amount) 
+size_t autocenter(int fd, double amount) 
 {
     double value = 0xFFFFUL * CLAMP(amount, 0, 1);
     return play_effect(fd, FF_AUTOCENTER, value);
@@ -42,12 +44,14 @@ int autocenter(int fd, double amount)
 void get_capabilities(int fd) 
 {
     unsigned long features[FEATURES_LEN];
-    size_t size = 16;
-    int res = ioctl(fd, EVIOCGBIT(EV_FF, size), features);
-    printf("res: %d\n", res);
+    
+    if (ioctl(fd, EVIOCGBIT(EV_FF, FEATURES_LEN), features) == -1)
+        return;
+
     for (size_t i = FF_RUMBLE; i <= FF_AUTOCENTER; i++)
     {
-        printf("%s = %lu\n", features_name[i - FF_RUMBLE], (features[1] >> (i - sizeof(long) * 8)) & 0x01);
+        unsigned long bit = (features[1] >> (i - sizeof(long) * 8)) & 0x01;
+        printf("%s = %lu\n", features_name[i - FF_RUMBLE], bit);
     }
 }
 
@@ -85,39 +89,111 @@ struct ff_effect* create_effect(signed short level, unsigned short length)
     return effect;
 }
 
-int open_device() 
-{
-    return open("/dev/input/event6", O_RDWR);
+static int is_event_device(const struct dirent *dir) {
+	return strncmp(EVENT_DEV_NAME, dir->d_name, 5) == 0;
 }
 
-int main()  {
-    int fd = open_device();
-    printf("%d\n", fd);
+int versionsort(const struct dirent ** a, const struct dirent ** b) {
+    return 1;
+}
+
+
+/**
+ * @brief Scans devices on the computer and returns the number XX corresponding to the eventXX device that supports force feedback
+ * 
+ * Inspired from 
+ * scan_devices(): https://github.com/freedesktop-unofficial-mirror/evtest/blob/master/evtest.c
+ * https://github.com/flosse/linuxconsole/blob/master/utils/fftest.c#L60
+ */
+int get_ff_device_num()
+{
+	struct dirent **namelist;
+	int ndev = scandir(DEV_INPUT_EVENT, &namelist, is_event_device, versionsort);
+	if (ndev <= 0)
+		return -1;
+
+	int devnum;
+    int ff_device = -1;
+    unsigned char features[1 + FF_MAX/8/sizeof(unsigned char)];
+
+	for (int i = 0; i < ndev; i++)
+	{
+        // Get event number corresponding to the device at index i
+        sscanf(namelist[i]->d_name, "event%d", &devnum);
+
+		char fname[267];
+        // get path event name in the format: /dev/input/eventXX
+		snprintf(fname, sizeof(fname), "%s/%s", DEV_INPUT_EVENT, namelist[i]->d_name);
+        // Open the handler in read only mode
+        int fd = open(fname, O_RDONLY);
+		if (fd < 0)
+			continue;
+
+        // Reads FF features
+        if (ioctl(fd, EVIOCGBIT(EV_FF, sizeof(features)*sizeof(unsigned char)), features) == -1)
+            continue;
+
+        // Check if opened handler supports force feedback by checking if FF_CONSTANT effects are supported
+	    if (testBit(FF_CONSTANT, features)) {
+            ff_device = devnum; // Found the FF device!
+        }
+
+		close(fd);
+		free(namelist[i]);
+	}
+    
+    return ff_device;
+}
+
+int open_ff_device() 
+{
+    int ff_dev_num = get_ff_device_num();
+    return open("/dev/input/event8", O_RDWR);
+}
+
+int close_ff_device(int fd) 
+{
+    return close(fd);
+}
+
+void get_device_name(int fd, char* name) 
+{    
+    ioctl(fd, EVIOCGNAME(sizeof(name) * sizeof(char)), name);
+}
+
+int main() 
+{
+    int fd = open_ff_device();
+    printf("fd %d\n", fd);
     if ( fd == -1 ) return 1;
 
+    char name[256] = "???";
+    get_device_name(fd, name);
+    printf("Device name: %s\n", name);
+
     get_capabilities(fd);
+
+    printf("autocenter 100 = %ld \n", autocenter(fd, 1));
+    sleep(1);
+    printf("autocenter 0 = %ld \n", autocenter(fd, 0));
     
-    struct ff_effect* effect = create_effect(32767, 100);
+    struct ff_effect* effect = create_effect(15000, 100); // 32767
     if (effect == NULL)
         return 1;
 
-    int uploaded = upload_effect(fd, effect);
-    printf("uploaded = %d, effect.id = %hu \n", uploaded, effect->id);
-    play_effect(fd, effect->id, 1);
+    printf("uploaded = %d, effect.id = %d \n", upload_effect(fd, effect), effect->id);
+    printf("played = %ld\n", play_effect(fd, effect->id, 1));
 
     sleep(1);
 
     effect->direction = FF_DIRECTION_RIGHT;
-    // effect.u.constant.level = ((signed short) 32767);
-    uploaded = upload_effect(fd, effect);
-    printf("uploaded = %d, effect.id = %hu \n", uploaded, effect->id);
-    play_effect(fd, effect->id, 1);
+    printf("uploaded = %d, effect.id = %d \n", upload_effect(fd, effect), effect->id);
+    printf("played = %ld\n", play_effect(fd, effect->id, 1));
 
     sleep(1);
 
-    int removed = remove_effect(fd, effect);
-    printf("removed = %d\n", removed);
-
+    printf("removed = %d\n", remove_effect(fd, effect));
+    close_ff_device(fd);
     free(effect);
 
     return 0;

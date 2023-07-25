@@ -19,6 +19,23 @@
 #define FF_DIRECTION_LEFT 0x4000
 #define FF_DIRECTION_RIGHT 0xC000
 
+
+#define EVENT_DEV_NAME "event"
+#define DEV_INPUT_EVENT "/dev/input"
+
+#define nBitsPerUchar          (sizeof(unsigned char) * 8)
+/* Number of unsigned chars to contain a given number of bits */
+#define nUcharsForNBits(nBits) ((((nBits)-1)/nBitsPerUchar)+1)
+/* Index=Offset of given bit in 1 unsigned char */
+#define bitOffsetInUchar(bit)  ((bit)%nBitsPerUchar)
+/* Index=Offset of the unsigned char associated to the bit at the given index=offset */
+#define ucharIndexForBit(bit)  ((bit)/nBitsPerUchar)
+/* Value of an unsigned char with bit set at given index=offset */
+#define ucharValueForBit(bit)  (((unsigned char)(1))<<bitOffsetInUchar(bit))
+/* Test the bit with given index=offset in an unsigned char array */
+#define testBit(bit, array)    ((array[ucharIndexForBit(bit)] >> bitOffsetInUchar(bit)) & 1)
+
+
 /**
  * @brief Uploads an effect to the device corresponding to the handler fd
  * 
@@ -37,7 +54,7 @@ int upload_effect(int fd, struct ff_effect* effect);
  * @param value: effect strength if used with FF_{CODE} or # of repetitions if used with effect->id
  * @return int: whether playing the effect worked or not
  */
-int play_effect(int fd, unsigned short code, signed int value);
+size_t play_effect(int fd, unsigned short code, signed int value);
 
 /**
  * @brief Remove effect uploaded to the handler fd
@@ -58,7 +75,7 @@ int remove_effect(int fd, struct ff_effect* effect);
  *      1 being the strongest force that can be applied to the device
  * @return int: whether setting the autocenter force worked or not
  */
-int autocenter(int fd, double amount);
+size_t autocenter(int fd, double amount);
 
 /**
  * @brief Get the capabilities of the device, such as the various effects it supports
@@ -82,4 +99,14 @@ struct ff_effect* create_effect(signed short level, unsigned short length);
  * 
  * @return int: fd (handler)
 **/
-int open_device();
+int open_ff_device();
+
+/** 
+ * @brief Closes the handler corresponding to the device
+ * 
+ * @param int: fd (handler)
+ * @return int: whether closing the handler worked or not
+**/
+int close_ff_device(int fd);
+
+void get_device_name(int fd, char* name);
