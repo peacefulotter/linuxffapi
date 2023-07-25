@@ -85,14 +85,15 @@ struct ff_effect* create_effect(signed short level, unsigned short length)
     return effect;
 }
 
-int open_wheel() 
+int open_device() 
 {
     return open("/dev/input/event6", O_RDWR);
 }
 
 int main()  {
-    int fd = open_wheel();
+    int fd = open_device();
     printf("%d\n", fd);
+    if ( fd == -1 ) return 1;
 
     get_capabilities(fd);
     

@@ -9,11 +9,19 @@ extern "C" {
 #endif
 /*
  * Class:     HelloJNI
- * Method:    sayHello
- * Signature: ()V
+ * Method:    openDevice
+ * Signature: ()I
  */
-JNIEXPORT void JNICALL Java_HelloJNI_sayHello
-  (JNIEnv *, jobject);
+JNIEXPORT jint JNICALL Java_HelloJNI_openDevice
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     HelloJNI
+ * Method:    getCapabilities
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_HelloJNI_getCapabilities
+  (JNIEnv *, jclass, jint);
 
 #ifdef __cplusplus
 }

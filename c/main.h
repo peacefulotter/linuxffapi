@@ -82,4 +82,4 @@ struct ff_effect* create_effect(signed short level, unsigned short length);
  * 
  * @return int: fd (handler)
 **/
-int open_wheel();
+int open_device();
