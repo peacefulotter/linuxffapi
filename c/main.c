@@ -37,7 +37,7 @@ int remove_effect(int fd, struct ff_effect* effect)
 
 size_t autocenter(int fd, double amount) 
 {
-    double value = 0xFFFFUL * CLAMP(amount, 0, 1);
+    int value = (int) (0xFFFFUL * CLAMP(amount, 0, 1));
     return play_effect(fd, FF_AUTOCENTER, value);
 }
 
@@ -45,7 +45,7 @@ void get_capabilities(int fd)
 {
     unsigned long features[FEATURES_LEN];
     
-    if (ioctl(fd, EVIOCGBIT(EV_FF, FEATURES_LEN), features) == -1)
+    if (ioctl(fd, EVIOCGBIT(EV_FF, sizeof(features)), features) == -1)
         return;
 
     for (size_t i = FF_RUMBLE; i <= FF_AUTOCENTER; i++)
@@ -108,7 +108,7 @@ int versionsort(const struct dirent ** a, const struct dirent ** b) {
 int get_ff_device_num()
 {
 	struct dirent **namelist;
-	int ndev = scandir(DEV_INPUT_EVENT, &namelist, is_event_device, versionsort);
+	int ndev = scandir(DEV_INPUT_FOLDER, &namelist, is_event_device, versionsort);
 	if (ndev <= 0)
 		return -1;
 
@@ -121,9 +121,9 @@ int get_ff_device_num()
         // Get event number corresponding to the device at index i
         sscanf(namelist[i]->d_name, "event%d", &devnum);
 
-		char fname[267];
+		char fname[EVENT_PATH_SIZE];
         // get path event name in the format: /dev/input/eventXX
-		snprintf(fname, sizeof(fname), "%s/%s", DEV_INPUT_EVENT, namelist[i]->d_name);
+		snprintf(fname, sizeof(fname), "%s/%s%d", DEV_INPUT_FOLDER, EVENT_DEV_NAME, devnum);
         // Open the handler in read only mode
         int fd = open(fname, O_RDONLY);
 		if (fd < 0)
@@ -148,7 +148,9 @@ int get_ff_device_num()
 int open_ff_device() 
 {
     int ff_dev_num = get_ff_device_num();
-    return open("/dev/input/event8", O_RDWR);
+    char fname[EVENT_PATH_SIZE];
+    snprintf(fname, sizeof(fname), "%s/%s%d", DEV_INPUT_FOLDER, EVENT_DEV_NAME, ff_dev_num);
+    return open(fname, O_RDWR);
 }
 
 int close_ff_device(int fd) 

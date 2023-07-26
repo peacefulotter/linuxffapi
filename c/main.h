@@ -21,7 +21,8 @@
 
 
 #define EVENT_DEV_NAME "event"
-#define DEV_INPUT_EVENT "/dev/input"
+#define DEV_INPUT_FOLDER "/dev/input"
+#define EVENT_PATH_SIZE (sizeof(DEV_INPUT_FOLDER) + sizeof(char) + sizeof(EVENT_DEV_NAME) + sizeof(int))
 
 #define nBitsPerUchar          (sizeof(unsigned char) * 8)
 /* Number of unsigned chars to contain a given number of bits */
