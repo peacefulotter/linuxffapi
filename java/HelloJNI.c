@@ -183,13 +183,7 @@ JNIEXPORT jshort JNICALL Java_HelloJNI_playEffect(JNIEnv* env, jclass class, jin
     if (effect == NULL)
         return -1;
 
-    // if (effect->id != -1)
-    // {
-    //     play_effect(fd, effect->id, 0);
-    //     printf("c stopped effect %d\n", effect->id);
-    // }
-
-    if (effect->id < 0 && upload_effect(fd, effect) < 0)
+    if (upload_effect(fd, effect) < 0)
         return -1;
 
     printf("c upload: %d\n", effect->id);
