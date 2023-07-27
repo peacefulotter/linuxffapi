@@ -52,9 +52,9 @@ JNIEXPORT jint JNICALL Java_HelloJNI_setAutocenter
 /*
  * Class:     HelloJNI
  * Method:    playEffect
- * Signature: (ILHelloJNI/FFEffect;)I
+ * Signature: (ILHelloJNI/FFEffect;)S
  */
-JNIEXPORT jint JNICALL Java_HelloJNI_playEffect
+JNIEXPORT jshort JNICALL Java_HelloJNI_playEffect
   (JNIEnv *, jclass, jint, jobject);
 
 /*

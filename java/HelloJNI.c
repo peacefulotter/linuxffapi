@@ -1,8 +1,29 @@
 #include "HelloJNI.h"   // Generated
 #include "main.h"
 
-#include <errno.h>
- 
+
+// #include <linux/input.h>
+// struct input_dev* device = input_allocate_device();
+// device->name()
+
+/**
+    +---+---------+
+    | Z | boolean |
+    | B | byte    |
+    | C | char    |
+    | S | short   |
+    | I | int     |
+    | J | long    |
+    | F | float   |
+    | D | double  |
+    +-------------+
+ */
+bool get_class_bool_field(JNIEnv* env, jobject obj, const char* var_name) 
+{
+    jclass clazz = (*env)->GetObjectClass(env, obj);
+    return (*env)->GetBooleanField(env, obj, (*env)->GetFieldID(env, clazz, var_name, "Z"));
+}
+
 int get_class_int_field(JNIEnv* env, jobject obj, const char* var_name) 
 {
     jclass clazz = (*env)->GetObjectClass(env, obj);
@@ -15,21 +36,27 @@ short get_class_short_field(JNIEnv* env, jobject obj, const char* var_name)
     return (*env)->GetShortField(env, obj, (*env)->GetFieldID(env, clazz, var_name, "S"));
 }
 
-struct ff_effect* create_effect(signed short level, unsigned short length) 
+struct ff_effect* create_effect(JNIEnv* env, jobject obj) 
 {
+    short level = get_class_short_field(env, obj, "level");
+	short length = get_class_short_field(env, obj, "length");
+	short id = get_class_short_field(env, obj, "id");
+	bool dir = get_class_bool_field(env, obj, "dir");
+    printf("c got object params\n\tlvl: %d\n\tlength: %d\n\tdir: %d\n\tid: %d\n", level, length, dir, id);
+
     struct ff_effect* effect = (struct ff_effect*) calloc(1, sizeof(struct ff_effect));
     if (effect == NULL)
         return NULL;
     
     struct ff_constant_effect constant;
-    constant.level = level;
+    constant.level = (signed short) level;
 
-    // struct ff_envelope envelope;
-    // envelope.attack_length = 0;
-    // envelope.attack_level = 0;
-    // envelope.fade_length = 0;
-    // envelope.fade_level = 0;
-    // constant.envelope = envelope;
+    struct ff_envelope envelope;
+    envelope.attack_length = 0;
+    envelope.attack_level = 0;
+    envelope.fade_length = 0;
+    envelope.fade_level = 0;
+    constant.envelope = envelope;
 
     struct ff_replay replay;
     replay.delay = 0;
@@ -38,9 +65,9 @@ struct ff_effect* create_effect(signed short level, unsigned short length)
     struct ff_trigger trigger;
     trigger.button = 0;
     trigger.interval = 0;
-    
-    effect->direction = FF_DIRECTION_LEFT;
-    effect->id = -1;
+
+    effect->direction = (dir == 1) ? FF_DIRECTION_LEFT : FF_DIRECTION_RIGHT;
+    effect->id = (signed short) id;
     effect->replay = replay;
     effect->trigger = trigger;
     effect->type = FF_CONSTANT;
@@ -53,7 +80,7 @@ JNIEXPORT jlong JNICALL Java_HelloJNI_getDeviceCapabilities(JNIEnv* env, jclass 
 {
     unsigned long features[FEATURES_LEN];
 
-    if (ioctl(fd, EVIOCGBIT(EV_FF, sizeof(features)), features) == -1)
+    if (ioctl(fd, EVIOCGBIT(EV_FF, sizeof(features)), features) < 0)
         return 0;
 
     return features[1];
@@ -93,7 +120,7 @@ int get_ff_device_num()
 			continue;
 
         // Reads FF features
-        if (ioctl(fd, EVIOCGBIT(EV_FF, sizeof(features)*sizeof(unsigned char)), features) == -1)
+        if (ioctl(fd, EVIOCGBIT(EV_FF, sizeof(features)*sizeof(unsigned char)), features) < 0)
             continue;
 
         // Check if opened handler supports force feedback by checking if FF_CONSTANT effects are supported
@@ -149,25 +176,32 @@ int upload_effect(int fd, struct ff_effect* effect) {
     return ioctl(fd, EVIOCSFF, effect);
 }
 
-JNIEXPORT jint JNICALL Java_HelloJNI_playEffect(JNIEnv* env, jclass class, jint fd, jobject obj) {
-    short level = get_class_short_field(env, obj, "level");
-	short length = get_class_short_field(env, obj, "length");
-    printf("%d, %d\n", level, length);
+JNIEXPORT jshort JNICALL Java_HelloJNI_playEffect(JNIEnv* env, jclass class, jint fd, jobject obj) 
+{
+    struct ff_effect* effect = create_effect(env, obj);
 
-    struct ff_effect* effect = create_effect(level, length);
-    printf("effect: %p\n", effect);
     if (effect == NULL)
         return -1;
 
-    if (upload_effect(fd, effect) == -1)
-        return -1;
-    printf("upload: %d\n", effect->id);
+    // if (effect->id != -1)
+    // {
+    //     play_effect(fd, effect->id, 0);
+    //     printf("c stopped effect %d\n", effect->id);
+    // }
 
-    if (play_effect(fd, effect->id, 1) == -1)
+    if (effect->id < 0 && upload_effect(fd, effect) < 0)
         return -1;
 
-    printf("played: %d\n", effect->id);
-    return effect->id;
+    printf("c upload: %d\n", effect->id);
+
+    if (play_effect(fd, effect->id, 1) < 0)
+        return -1;
+
+    short id = effect->id;
+    free(effect);
+
+    printf("c played: %d\n", id);
+    return id;
 }
 
 JNIEXPORT jint JNICALL Java_HelloJNI_removeEffect(JNIEnv* env, jclass class, jint fd, jint id) 

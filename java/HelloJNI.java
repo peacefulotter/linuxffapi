@@ -28,7 +28,7 @@ public class HelloJNI {
    private static native long getDeviceCapabilities(int fd);
    private static native String getDeviceName(int fd);
    private static native int setAutocenter(int fd, double amount);
-   private static native int playEffect(int fd, FFEffect effect);
+   private static native short playEffect(int fd, FFEffect effect);
    private static native int removeEffect(int fd, int id);
 
    private static boolean getBit(long n, int offset) {
@@ -74,7 +74,7 @@ public class HelloJNI {
     * @return -1 if failed, otherwise succeeded
     */
    public int playEffect(FFEffect effect) {
-      int id = playEffect(fd, effect);
+      short id = playEffect(fd, effect);
       System.out.println("id: " + id);
       effect.setId(id);
       return id;
@@ -97,13 +97,13 @@ public class HelloJNI {
       System.out.println("Autocenter done");
       Thread.sleep(1000);
 
-      FFEffect effect1 = new FFEffect((short) 15000,  (short) 250);
+      FFEffect effect1 = new FFEffect((short) 15000,  (short) 150, true);
       System.out.println("Playing effect");
       jni.playEffect(effect1);
       Thread.sleep(2000);
       
       System.out.println("Playing effect");
-      effect1.setLevel((short) -15000);
+      // effect1.setDir(false); // .setLevel((short) -15000);
       jni.playEffect(effect1);
       Thread.sleep(1000);
 
@@ -118,8 +118,8 @@ public class HelloJNI {
    }
 
    static class FFEffect {
-      private int id;
-      private short level, length;
+      private short id, level, length;
+      private boolean dir;
 
       private static short clamp(short x, short min) {
          return (short) Math.max((int) min, Math.min((int) x, (int) Short.MAX_VALUE));
@@ -128,10 +128,13 @@ public class HelloJNI {
       /**
        * @param level: effect strength (between -32768 and 32767)
        * @param length: time the effect lasts (in ms)
+       * @param dir: true: left, false: right
        */
-      public FFEffect(short level, short length) {
+      public FFEffect(short level, short length, boolean dir) {
          setLevel(level);
          setLength(length);
+         setDir(dir);
+         this.id = -1;
       }
 
       short getLevel() { 
@@ -150,11 +153,19 @@ public class HelloJNI {
          this.length = clamp(length, (short) 0);
       }
 
+      boolean getDir() { 
+         return dir; 
+      }
+
+      void setDir(boolean dir) {
+         this.dir = dir;
+      }
+
       int getId() { 
          return id; 
       }
 
-      void setId(int id) {
+      void setId(short id) {
          this.id = id;
       }
    }
