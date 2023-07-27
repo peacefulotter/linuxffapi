@@ -1,4 +1,4 @@
-#include "HelloJNI.h"   // Generated
+#include "NativeDevice.h"   // Generated
 #include "main.h"
 
 
@@ -76,7 +76,7 @@ struct ff_effect* create_effect(JNIEnv* env, jobject obj)
     return effect;
 }
 
-JNIEXPORT jlong JNICALL Java_HelloJNI_getDeviceCapabilities(JNIEnv* env, jclass class, jint fd) 
+JNIEXPORT jlong JNICALL Java_NativeDevice_nativeGetDeviceCapabilities(JNIEnv* env, jclass class, jint fd) 
 {
     unsigned long features[FEATURES_LEN];
 
@@ -136,7 +136,7 @@ int get_ff_device_num()
 }
 
 
-JNIEXPORT jint JNICALL Java_HelloJNI_openDevice(JNIEnv* env, jclass class) 
+JNIEXPORT jint JNICALL Java_NativeDevice_nativeOpenDevice(JNIEnv* env, jclass class) 
 {
     int ff_dev_num = get_ff_device_num();
     char fname[EVENT_PATH_SIZE];
@@ -144,12 +144,12 @@ JNIEXPORT jint JNICALL Java_HelloJNI_openDevice(JNIEnv* env, jclass class)
     return open(fname, O_RDWR);
 }
 
-JNIEXPORT jint JNICALL Java_HelloJNI_closeDevice(JNIEnv* env, jclass class, jint fd) 
+JNIEXPORT jint JNICALL Java_NativeDevice_nativeCloseDevice(JNIEnv* env, jclass class, jint fd) 
 {
     return close(fd);
 }
 
-JNIEXPORT jstring JNICALL Java_HelloJNI_getDeviceName(JNIEnv* env, jclass class, jint fd)
+JNIEXPORT jstring JNICALL Java_NativeDevice_nativeGetDeviceName(JNIEnv* env, jclass class, jint fd)
 {
     char name[256];
     ioctl(fd, EVIOCGNAME(sizeof(name) * sizeof(char)), name);
@@ -166,7 +166,7 @@ int play_effect(int fd, unsigned short code, signed int value)
 }
 
 
-JNIEXPORT jint JNICALL Java_HelloJNI_setAutocenter(JNIEnv* env, jclass class, jint fd, jdouble amount)
+JNIEXPORT jint JNICALL Java_NativeDevice_nativeSetAutocenter(JNIEnv* env, jclass class, jint fd, jdouble amount)
 {
     int value = (int) (0xFFFFUL * CLAMP(amount, 0, 1));
     return play_effect(fd, FF_AUTOCENTER, value);
@@ -176,7 +176,7 @@ int upload_effect(int fd, struct ff_effect* effect) {
     return ioctl(fd, EVIOCSFF, effect);
 }
 
-JNIEXPORT jshort JNICALL Java_HelloJNI_playEffect(JNIEnv* env, jclass class, jint fd, jobject obj) 
+JNIEXPORT jshort JNICALL Java_NativeDevice_nativePlayEffect(JNIEnv* env, jclass class, jint fd, jobject obj) 
 {
     struct ff_effect* effect = create_effect(env, obj);
 
@@ -198,7 +198,7 @@ JNIEXPORT jshort JNICALL Java_HelloJNI_playEffect(JNIEnv* env, jclass class, jin
     return id;
 }
 
-JNIEXPORT jint JNICALL Java_HelloJNI_removeEffect(JNIEnv* env, jclass class, jint fd, jint id) 
+JNIEXPORT jint JNICALL Java_NativeDevice_nativeRemoveEffect(JNIEnv* env, jclass class, jint fd, jint id) 
 {
     return ioctl(fd, EVIOCRMFF, id);
 }
