@@ -88,7 +88,7 @@ int test_bit(const char* bitmask, int bit) {
     return bitmask[bit / 8] & (1 << (bit % 8));
 }
 
-void read_keys(int fd, struct wheel_status* wheel) {
+void read_btns(int fd, struct wheel_status* wheel) {
     char code_bits[KEY_MAX / 8 + 1];
     memset(&code_bits, 0, sizeof(code_bits));
     
@@ -206,46 +206,46 @@ void ioctl_capabilities(int fd)
     }
 }
 
-size_t get_axis_count(int fd)
-{
-    __u8 axes;
-    if (ioctl(fd, JSIOCGAXES, &axes) == -1)
-        return 0;
-    return axes;
-}
+// Only works for joysticks
+// size_t get_axis_count(int fd)
+// {
+//     __u8 axes;
+//     if (ioctl(fd, JSIOCGAXES, &axes) == -1)
+//         return 0;
+//     return axes;
+// }
 
-size_t get_button_count(int fd)
-{
-    __u8 buttons;
-    if (ioctl(fd, JSIOCGBUTTONS, &buttons) == -1)
-        return 0;
-    return buttons;
-}
+// Only works for joysticks
+// size_t get_button_count(int fd)
+// {
+//     __u8 buttons;
+//     if (ioctl(fd, JSIOCGBUTTONS, &buttons) == -1)
+//         return 0;
+//     return buttons;
+// }
 
 int main( void )
 {
-    printf("%zu\n", sizeof(char));
-    char buf[] = "ff";
-
     int fd = open("/dev/input/event24", O_RDWR);
     printf("fd: %d\n", fd);
-    printf("Axis count: %zu\n", get_axis_count(fd));
-    printf("Button count: %zu\n", get_button_count(fd));
 
-    struct wheel_status* wheel = calloc(1, sizeof(struct wheel_status));
-
-    while (1) {
-        // loop(fd);
-        read_abs(fd, wheel);
-        read_keys(fd, wheel);
-        print_status(wheel);
-        sleep(0.1);
-    }
     // printf("seek: %d\n", lseek(fd, PEDAL_OFFSET, SEEK_SET));
     // if ( write(fd, &buf, sizeof(buf)) < 0 )
     //     perror("perror output");
+
+    struct wheel_status wheel;
+    memset(&wheel, 0, sizeof(wheel));
+    // = calloc(1, sizeof(struct wheel_status));
+
+    while (1) {
+        read_btns(fd, &wheel);
+        read_abs(fd, &wheel);
+        print_status(&wheel);
+        sleep(0.1);
+    }
+    
     close(fd);
-    free(wheel);
+    // free(wheel);
 
     return 0;
 }
