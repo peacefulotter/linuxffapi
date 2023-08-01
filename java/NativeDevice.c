@@ -20,20 +20,20 @@
  */
 bool get_class_bool_field(JNIEnv* env, jobject obj, const char* var_name) 
 {
-    jclass clazz = (*env)->GetObjectClass(env, obj);
-    return (*env)->GetBooleanField(env, obj, (*env)->GetFieldID(env, clazz, var_name, "Z"));
+    jclass cls = (*env)->GetObjectClass(env, obj);
+    return (*env)->GetBooleanField(env, obj, (*env)->GetFieldID(env, cls, var_name, "Z"));
 }
 
 int get_class_int_field(JNIEnv* env, jobject obj, const char* var_name) 
 {
-    jclass clazz = (*env)->GetObjectClass(env, obj);
-    return (*env)->GetIntField(env, obj, (*env)->GetFieldID(env, clazz, var_name, "I"));
+    jclass cls = (*env)->GetObjectClass(env, obj);
+    return (*env)->GetIntField(env, obj, (*env)->GetFieldID(env, cls, var_name, "I"));
 }
 
 short get_class_short_field(JNIEnv* env, jobject obj, const char* var_name) 
 {
-    jclass clazz = (*env)->GetObjectClass(env, obj);
-    return (*env)->GetShortField(env, obj, (*env)->GetFieldID(env, clazz, var_name, "S"));
+    jclass cls = (*env)->GetObjectClass(env, obj);
+    return (*env)->GetShortField(env, obj, (*env)->GetFieldID(env, cls, var_name, "S"));
 }
 
 struct ff_effect* create_effect(JNIEnv* env, jobject obj) 
@@ -178,12 +178,30 @@ int upload_effect(int fd, struct ff_effect* effect) {
 
 JNIEXPORT jshort JNICALL Java_NativeDevice_nativePlayEffect(JNIEnv* env, jclass class, jint fd, jobject obj) 
 {
+    jclass cls_effect = (*env)->GetObjectClass(env, obj);
+    jfieldID id_dir = (*env)->GetFieldID(env, cls_effect, "dir", "LDirection;");
+    printf("c id_dir %p\n", id_dir);
+
+    jobject dir_obj = (*env)->GetObjectField(env, cls_effect, id_dir);
+    printf("c dir_obj %p\n", dir_obj);
+
+    jclass cls_dir = (*env)->FindClass(env, "LDirection;");
+    printf("c cls_dir %p\n", cls_dir);
+
+    int dir = get_class_int_field(env, dir_obj, "value");
+    printf("c dir %d\n", dir);
+
+    return -1;
+
+    bool changed = get_class_bool_field(env, obj, "changed");
     struct ff_effect* effect = create_effect(env, obj);
+
+    printf("c changed: %d\n", changed);
 
     if (effect == NULL)
         return -1;
 
-    if (upload_effect(fd, effect) < 0)
+    if (changed && upload_effect(fd, effect) < 0)
         return -1;
 
     printf("c upload: %d\n", effect->id);

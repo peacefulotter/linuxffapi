@@ -148,6 +148,7 @@ int get_ff_device_num()
 int open_ff_device() 
 {
     int ff_dev_num = get_ff_device_num();
+    printf("ff_dev_num %d\n", ff_dev_num);
     char fname[EVENT_PATH_SIZE];
     snprintf(fname, sizeof(fname), "%s/%s%d", DEV_INPUT_FOLDER, EVENT_DEV_NAME, ff_dev_num);
     return open(fname, O_RDWR);

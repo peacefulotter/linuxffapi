@@ -1,6 +1,7 @@
 public class FFEffect {
     private short id, level, length;
-    private boolean dir, changed;
+    private Direction dir;
+    private boolean changed;
 
     private static short clamp(short x, short min) {
         return (short) Math.max((int) min, Math.min((int) x, (int) Short.MAX_VALUE));
@@ -11,7 +12,7 @@ public class FFEffect {
      * @param length: time the effect lasts (in ms)
      * @param dir: true: left, false: right
      */
-    public FFEffect(short level, short length, boolean dir) {
+    public FFEffect(short level, short length, Direction dir) {
         setLevel(level);
         setLength(length);
         setDir(dir);
@@ -23,7 +24,9 @@ public class FFEffect {
      * Catches properties changes because the effect requires an entire re-upload in that case 
     */
     private <T> void setterMiddleware(T before, T after) {
-        if (!before.equals(after))
+        if (before == null && after == null)
+            return;
+        if (before == null || !before.equals(after))
             changed = true;
     }
 
@@ -47,11 +50,11 @@ public class FFEffect {
         this.length = newLength;
     }
 
-    public boolean getDir() { 
+    public Direction getDir() { 
         return dir; 
     }
 
-    public void setDir(boolean dir) {
+    public void setDir(Direction dir) {
         setterMiddleware(this.dir, dir);
         this.dir = dir;
     }

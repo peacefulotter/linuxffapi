@@ -1,1 +1,1 @@
-gcc -Wall main.c && ./a.out
+gcc -o main -Wall main.c && ./main

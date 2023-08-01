@@ -18,13 +18,16 @@ public class HelloJNI {
       System.out.println("Autocenter done");
       Thread.sleep(1000);
 
-      FFEffect effect = new FFEffect((short) 15000,  (short) 150, true);
+      FFEffect effect = new FFEffect((short) 15000,  (short) 150, Direction.LEFT);
       System.out.println("Playing effect");
+      System.out.println("BEFORE SETTING DIR " + effect.getDir().ordinal());
       jni.playEffect(effect);
       Thread.sleep(2000);
-      
+
       System.out.println("Playing effect");
-      // effect.setDir(false); // .setLevel((short) -15000);
+      System.out.println("BEFORE SETTING DIR " + effect.getDir().ordinal());
+      effect.setDir(Direction.RIGHT); // .setLevel((short) -15000);
+      System.out.println("AFTER SETTING DIR " + effect.getDir().ordinal());
       jni.playEffect(effect);
       Thread.sleep(1000);
 
