@@ -99,6 +99,8 @@ void read_btns(int fd, struct wheel_status* wheel) {
         int ev_code = wheel_buttons[i].code;
         wheel->btns[i] = test_bit(code_bits, ev_code) > 0 ? 1 : 0;
     }
+
+    // Use this to discover the btns on your steering wheel
     // for (int ev_code = 0;ev_code < KEY_MAX; ev_code++) 
     // {
     //     if (test_bit(code_bits, ev_code)) {
@@ -136,6 +138,8 @@ void read_abs(int fd, struct wheel_status* wheel)
         ioctl(fd, EVIOCGABS(ev_code), &absinfo);
         wheel->axis[i] = absinfo.value;
     }
+
+    // Use this to discover the axis on your steering wheel
     // for (int ev_code = 0;ev_code < KEY_MAX; ev_code++) 
     // {
     //     if (test_bit(code_bits, ev_code)) {
@@ -164,47 +168,6 @@ void print_status(struct wheel_status* wheel) {
     }
 }
 
-void ioctl_capabilities(int fd)
-{
-    int ev_type, ev_code;
-    char ev_bits[EV_MAX/8 + 1], code_bits[KEY_MAX / 8 + 1];
-    struct input_absinfo absinfo;
-
-    memset(&ev_bits, 0, sizeof(ev_bits));
-
-    if (ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), ev_bits) < 0)
-        return;
-
-    // Build a dictionary of the device's capabilities
-    for (ev_type=0; ev_type < EV_MAX; ev_type++) {
-        if (test_bit(ev_bits, ev_type)) {
-
-            // printf("ev_type: %d\n", ev_type);
-
-            memset(&code_bits, 0, sizeof(code_bits));
-            ioctl(fd, EVIOCGBIT(ev_type, sizeof(code_bits)), code_bits);
-
-            for (ev_code = 0; ev_code < KEY_MAX; ev_code++) {
-                if (test_bit(code_bits, ev_code)) {
-                    // Get abs{min,max,fuzz,flat} values for ABS_* event codes
-                    if (ev_type == EV_ABS) {
-                        memset(&absinfo, 0, sizeof(absinfo));
-                        ioctl(fd, EVIOCGABS(ev_code), &absinfo);
-
-                        printf("code: %x, val: %d, min: %d, max: %d, fuzz: %d, flat: %d, res: %d\n",
-                                                   ev_code,
-                                                   absinfo.value,
-                                                   absinfo.minimum,
-                                                   absinfo.maximum,
-                                                   absinfo.fuzz,
-                                                   absinfo.flat,
-                                                   absinfo.resolution);
-                    }
-                }
-            }
-        }
-    }
-}
 
 // Only works for joysticks
 // size_t get_axis_count(int fd)
@@ -235,7 +198,6 @@ int main( void )
 
     struct wheel_status wheel;
     memset(&wheel, 0, sizeof(wheel));
-    // = calloc(1, sizeof(struct wheel_status));
 
     while (1) {
         read_btns(fd, &wheel);
